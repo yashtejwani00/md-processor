@@ -156,4 +156,72 @@ python mermaid_to_png.py document.md
 
 ---
 
+## 🚀 Deployment
+
+### Deploy to Render
+
+1. **Create a new Web Service** on [Render](https://render.com)
+2. **Connect your GitHub repository**
+3. **Configure the service:**
+   - Environment: `Python 3`
+   - Build Command: `pip install -r requirements.txt && npm install -g @mermaid-js/mermaid-cli`
+   - Start Command: `gunicorn server:app`
+4. **Add environment variables** (optional):
+   - `PYTHON_VERSION`: `3.11.0`
+5. **Deploy!** Your app will be available at `https://your-app.onrender.com`
+
+### Deploy to Railway
+
+1. **Create a new project** on [Railway](https://railway.app)
+2. **Deploy from GitHub repo**
+3. Railway will automatically detect the Procfile and deploy
+4. **Add Node.js buildpack** for mermaid-cli:
+   - Go to Settings → Add Buildpack
+   - Add: `heroku/nodejs`
+5. Your app will be live at the generated Railway URL
+
+### Deploy to Heroku
+
+1. **Install Heroku CLI** and login:
+   ```bash
+   heroku login
+   ```
+
+2. **Create a new Heroku app:**
+   ```bash
+   heroku create your-app-name
+   ```
+
+3. **Add Node.js buildpack** (for mermaid-cli):
+   ```bash
+   heroku buildpacks:add --index 1 heroku/nodejs
+   heroku buildpacks:add --index 2 heroku/python
+   ```
+
+4. **Create package.json** for Node.js dependencies:
+   ```bash
+   echo '{"dependencies": {"@mermaid-js/mermaid-cli": "^10.6.1"}}' > package.json
+   ```
+
+5. **Deploy:**
+   ```bash
+   git add .
+   git commit -m "Add deployment configuration"
+   git push heroku main
+   ```
+
+6. **Open your app:**
+   ```bash
+   heroku open
+   ```
+
+### Important Notes for Deployment
+
+- The app uses Node.js (mermaid-cli) and Python, so both buildpacks/environments are needed
+- Ensure `PORT` environment variable is used (already configured in Procfile)
+- File uploads are stored in `/tmp` which is ephemeral - files are automatically cleaned up
+- Increase timeout if processing large files (configured to 120s in Procfile)
+
+---
+
 **Made with ❤️ for easy Markdown processing**

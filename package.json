@@ -1,0 +1,8 @@
+{
+  "name": "md-processor",
+  "version": "1.0.0",
+  "description": "Markdown file processor with Mermaid diagram conversion",
+  "dependencies": {
+    "@mermaid-js/mermaid-cli": "^10.6.1"
+  }
+}
