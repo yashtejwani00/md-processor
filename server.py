@@ -26,6 +26,12 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
 
+@app.route('/')
+def home():
+    """Serve the home page"""
+    return send_file('index.html')
+
+
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
@@ -163,5 +169,5 @@ if __name__ == '__main__':
     print("=" * 60)
     print("\nPress Ctrl+C to stop the server")
     print()
-    
+
     app.run(debug=True, host='0.0.0.0', port=5001)
