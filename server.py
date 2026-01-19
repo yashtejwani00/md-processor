@@ -88,6 +88,40 @@ def convert_to_confluence():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/convert/confluence/text', methods=['POST'])
+def convert_to_confluence_text():
+    """Convert MD file to Confluence format - returns JSON with content"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+
+        file = request.files['file']
+
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+
+        if not file.filename.lower().endswith('.md'):
+            return jsonify({'error': 'File must be a .md file'}), 400
+
+        # Read file content
+        content = file.read().decode('utf-8')
+
+        # Convert content
+        converted_content = convert_md_to_confluence(content)
+
+        # Generate output filename
+        original_name = Path(file.filename).stem
+        output_filename = f"{original_name}-Confluence.txt"
+
+        return jsonify({
+            'content': converted_content,
+            'filename': output_filename
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/convert/mermaid', methods=['POST'])
 def convert_mermaid():
     """Extract Mermaid diagrams and convert to PNG"""
