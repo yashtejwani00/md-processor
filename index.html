@@ -225,6 +225,64 @@
             color: #999;
             font-size: 12px;
         }
+
+        .result-section {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9ff;
+            border-radius: 15px;
+            border: 2px solid #667eea;
+        }
+
+        .result-section.active {
+            display: block;
+        }
+
+        .result-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .result-textarea {
+            width: 100%;
+            height: 200px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            resize: vertical;
+            background: white;
+            margin-bottom: 15px;
+        }
+
+        .result-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .btn-download {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+
+        .btn-download:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(40, 167, 69, 0.4);
+        }
+
+        .btn-copy {
+            background: linear-gradient(135deg, #17a2b8 0%, #6f42c1 100%);
+            color: white;
+        }
+
+        .btn-copy:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(23, 162, 184, 0.4);
+        }
     </style>
 </head>
 <body>
@@ -260,10 +318,25 @@
             </button>
         </div>
 
+        <div class="result-section" id="resultSection">
+            <h3>Converted Output</h3>
+            <textarea class="result-textarea" id="resultText" readonly></textarea>
+            <div class="result-buttons">
+                <button class="btn-download" id="btnDownload">
+                    <span>📥</span>
+                    <span>Download File</span>
+                </button>
+                <button class="btn-copy" id="btnCopy">
+                    <span>📋</span>
+                    <span>Copy to Clipboard</span>
+                </button>
+            </div>
+        </div>
+
         <div class="status" id="status"></div>
 
         <div class="footer">
-            Make sure Python server is running on port 5001
+            Make sure Python server is running on port 5002
         </div>
     </div>
 
@@ -277,9 +350,15 @@
         const btnMermaid = document.getElementById('btnMermaid');
         const status = document.getElementById('status');
         const removeFile = document.getElementById('removeFile');
+        const resultSection = document.getElementById('resultSection');
+        const resultText = document.getElementById('resultText');
+        const btnDownload = document.getElementById('btnDownload');
+        const btnCopy = document.getElementById('btnCopy');
 
         let selectedFile = null;
-        const API_URL = 'http://localhost:5001';
+        let convertedContent = null;
+        let convertedFilename = null;
+        const API_URL = 'http://localhost:5002';
 
         // Drag and drop events
         dropZone.addEventListener('click', () => fileInput.click());
@@ -316,6 +395,7 @@
             btnConfluence.disabled = true;
             btnMermaid.disabled = true;
             hideStatus();
+            hideResultSection();
         });
 
         function handleFile(file) {
@@ -353,13 +433,14 @@
 
             btnConfluence.disabled = true;
             btnMermaid.disabled = true;
+            hideResultSection();
             showStatus('loading', '<span class="spinner"></span> Converting to Confluence format...');
 
             const formData = new FormData();
             formData.append('file', selectedFile);
 
             try {
-                const response = await fetch(`${API_URL}/convert/confluence`, {
+                const response = await fetch(`${API_URL}/convert/confluence/text`, {
                     method: 'POST',
                     body: formData
                 });
@@ -369,23 +450,53 @@
                     throw new Error(error.error || 'Conversion failed');
                 }
 
-                // Download the file
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = selectedFile.name.replace('.md', '-Confluence.txt');
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
+                const data = await response.json();
+                convertedContent = data.content;
+                convertedFilename = data.filename;
 
-                showStatus('success', '✅ File converted and downloaded successfully!');
+                // Show result section with converted content
+                resultText.value = convertedContent;
+                resultSection.classList.add('active');
+
+                showStatus('success', '✅ File converted successfully! Use the buttons below to download or copy.');
             } catch (error) {
                 showStatus('error', `❌ Error: ${error.message}`);
             } finally {
                 btnConfluence.disabled = false;
                 btnMermaid.disabled = false;
+            }
+        }
+
+        function hideResultSection() {
+            resultSection.classList.remove('active');
+            convertedContent = null;
+            convertedFilename = null;
+        }
+
+        function downloadConvertedFile() {
+            if (!convertedContent || !convertedFilename) return;
+
+            const blob = new Blob([convertedContent], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = convertedFilename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+            showStatus('success', '✅ File downloaded successfully!');
+        }
+
+        async function copyToClipboard() {
+            if (!convertedContent) return;
+
+            try {
+                await navigator.clipboard.writeText(convertedContent);
+                showStatus('success', '✅ Content copied to clipboard!');
+            } catch (error) {
+                showStatus('error', '❌ Failed to copy to clipboard. Please try again.');
             }
         }
 
@@ -436,6 +547,8 @@
 
         btnConfluence.addEventListener('click', convertToConfluence);
         btnMermaid.addEventListener('click', convertMermaid);
+        btnDownload.addEventListener('click', downloadConvertedFile);
+        btnCopy.addEventListener('click', copyToClipboard);
 
         // Check server status on load
         fetch(`${API_URL}/health`)
